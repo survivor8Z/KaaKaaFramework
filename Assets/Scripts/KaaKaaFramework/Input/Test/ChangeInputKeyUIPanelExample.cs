@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// InputSystem 改键系统测试脚本 - 精简版
 /// 功能：改键、重置所有
 /// </summary>
-public class TestChangeKeyInput : MonoBehaviour
+public class ChangeInputKeyUIPanelExample : MonoBehaviour
 {
     [Header("系统配置")]
     [SerializeField] private InputActionAsset inputActionAsset;
@@ -46,7 +46,7 @@ public class TestChangeKeyInput : MonoBehaviour
 
         // 绑定按钮事件
         if (moveButton != null)
-            moveButton.onClick.AddListener(() => OnRebindKey("Move", moveButtonText));
+            moveButton.onClick.AddListener(() => OnRebindKey("MoveW", moveButtonText));
         if (fireButton != null)
             fireButton.onClick.AddListener(() => OnRebindKey("Fire", fireButtonText));
         if (lookButton != null)
@@ -100,7 +100,7 @@ public class TestChangeKeyInput : MonoBehaviour
     void UpdateAllButtonTexts()
     {
         if (moveButtonText != null)
-            moveButtonText.text = InputBindingMgr.Instance.GetBindingDisplayString("Move");
+            moveButtonText.text = InputBindingMgr.Instance.GetBindingDisplayString("MoveW");
         if (fireButtonText != null)
             fireButtonText.text = InputBindingMgr.Instance.GetBindingDisplayString("Fire");
         if (lookButtonText != null)

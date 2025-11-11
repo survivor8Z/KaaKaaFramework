@@ -3,18 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
+///æ³¨æ„,æ­¤äº‹ä»¶ç³»ç»Ÿæ˜¯å¼ºç±»å‹,è§¦å‘å’Œç›‘å¬çš„ç±»å‹å¿…é¡»å®Œå…¨ç›¸åŒ,æ²¡æœ‰é€†å˜åå˜
+
 /// <summary>
-/// ÓÃÓÚ ÀïÊ½Ìæ»»Ô­Ôò ×°ÔØ ×ÓÀàµÄ¸¸Àà
+/// ç”¨äº é‡Œå¼æ›¿æ¢åŸåˆ™ è£…è½½ å­ç±»çš„çˆ¶ç±»
 /// </summary>
 public abstract class EventInfoBase{ }
 
 /// <summary>
-/// ÓÃÀ´°ü¹ü ¶ÔÓ¦¹Û²ìÕß º¯ÊıÎ¯ÍĞµÄ Àà
+/// ç”¨æ¥åŒ…è£¹ å¯¹åº”è§‚å¯Ÿè€… å‡½æ•°å§”æ‰˜çš„ ç±»
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public class EventInfo<T>:EventInfoBase
 {
-    //ÕæÕı¹Û²ìÕß ¶ÔÓ¦µÄ º¯ÊıĞÅÏ¢ ¼ÇÂ¼ÔÚÆäÖĞ
+    //çœŸæ­£è§‚å¯Ÿè€… å¯¹åº”çš„ å‡½æ•°ä¿¡æ¯ è®°å½•åœ¨å…¶ä¸­
     public UnityAction<T> actions;
 
     public EventInfo(UnityAction<T> action)
@@ -24,7 +26,7 @@ public class EventInfo<T>:EventInfoBase
 }
 
 /// <summary>
-/// Ö÷ÒªÓÃÀ´¼ÇÂ¼ÎŞ²ÎÎŞ·µ»ØÖµÎ¯ÍĞ
+/// ä¸»è¦ç”¨æ¥è®°å½•æ— å‚æ— è¿”å›å€¼å§”æ‰˜
 /// </summary>
 public class EventInfo: EventInfoBase
 {
@@ -38,52 +40,52 @@ public class EventInfo: EventInfoBase
 
 
 /// <summary>
-/// ÊÂ¼şÖĞĞÄÄ£¿é 
+/// äº‹ä»¶ä¸­å¿ƒæ¨¡å— 
 /// </summary>
 public class EventCenter: BaseManager<EventCenter>
 {
-    //ÓÃÓÚ¼ÇÂ¼¶ÔÓ¦ÊÂ¼ş ¹ØÁªµÄ ¶ÔÓ¦µÄÂß¼­
+    //ç”¨äºè®°å½•å¯¹åº”äº‹ä»¶ å…³è”çš„ å¯¹åº”çš„é€»è¾‘
     private Dictionary<E_EventType, EventInfoBase> eventDic = new Dictionary<E_EventType, EventInfoBase>();
 
     private EventCenter() { }
 
     /// <summary>
-    /// ´¥·¢ÊÂ¼ş 
+    /// è§¦å‘äº‹ä»¶ 
     /// </summary>
-    /// <param name="eventName">ÊÂ¼şÃû×Ö</param>
+    /// <param name="eventName">äº‹ä»¶åå­—</param>
     public void EventTrigger<T>(E_EventType eventName, T info)
     {
-        //´æÔÚ¹ØĞÄÎÒµÄÈË ²ÅÍ¨Öª±ğÈËÈ¥´¦ÀíÂß¼­
+        //å­˜åœ¨å…³å¿ƒæˆ‘çš„äºº æ‰é€šçŸ¥åˆ«äººå»å¤„ç†é€»è¾‘
         if(eventDic.ContainsKey(eventName))
         {
-            //È¥Ö´ĞĞ¶ÔÓ¦µÄÂß¼­
+            //å»æ‰§è¡Œå¯¹åº”çš„é€»è¾‘
             (eventDic[eventName] as EventInfo<T>).actions?.Invoke(info);
         }
     }
 
     /// <summary>
-    /// ´¥·¢ÊÂ¼ş ÎŞ²ÎÊı
+    /// è§¦å‘äº‹ä»¶ æ— å‚æ•°
     /// </summary>
     /// <param name="eventName"></param>
     public void EventTrigger(E_EventType eventName)
     {
-        //´æÔÚ¹ØĞÄÎÒµÄÈË ²ÅÍ¨Öª±ğÈËÈ¥´¦ÀíÂß¼­
+        //å­˜åœ¨å…³å¿ƒæˆ‘çš„äºº æ‰é€šçŸ¥åˆ«äººå»å¤„ç†é€»è¾‘
         if (eventDic.ContainsKey(eventName))
         {
-            //È¥Ö´ĞĞ¶ÔÓ¦µÄÂß¼­
+            //å»æ‰§è¡Œå¯¹åº”çš„é€»è¾‘
             (eventDic[eventName] as EventInfo).actions?.Invoke();
         }
     }
 
 
     /// <summary>
-    /// Ìí¼ÓÊÂ¼ş¼àÌıÕß
+    /// æ·»åŠ äº‹ä»¶ç›‘å¬è€…
     /// </summary>
     /// <param name="eventName"></param>
     /// <param name="func"></param>
     public void AddEventListener<T>(E_EventType eventName, UnityAction<T> func)
     {
-        //Èç¹ûÒÑ¾­´æÔÚ¹ØĞÄÊÂ¼şµÄÎ¯ÍĞ¼ÇÂ¼ Ö±½ÓÌí¼Ó¼´¿É
+        //å¦‚æœå·²ç»å­˜åœ¨å…³å¿ƒäº‹ä»¶çš„å§”æ‰˜è®°å½• ç›´æ¥æ·»åŠ å³å¯
         if (eventDic.ContainsKey(eventName))
         {
             (eventDic[eventName] as EventInfo<T>).actions += func;
@@ -96,7 +98,7 @@ public class EventCenter: BaseManager<EventCenter>
 
     public void AddEventListener(E_EventType eventName, UnityAction func)
     {
-        //Èç¹ûÒÑ¾­´æÔÚ¹ØĞÄÊÂ¼şµÄÎ¯ÍĞ¼ÇÂ¼ Ö±½ÓÌí¼Ó¼´¿É
+        //å¦‚æœå·²ç»å­˜åœ¨å…³å¿ƒäº‹ä»¶çš„å§”æ‰˜è®°å½• ç›´æ¥æ·»åŠ å³å¯
         if (eventDic.ContainsKey(eventName))
         {
             (eventDic[eventName] as EventInfo).actions += func;
@@ -108,7 +110,7 @@ public class EventCenter: BaseManager<EventCenter>
     }
 
     /// <summary>
-    /// ÒÆ³ıÊÂ¼ş¼àÌıÕß
+    /// ç§»é™¤äº‹ä»¶ç›‘å¬è€…
     /// </summary>
     /// <param name="eventName"></param>
     /// <param name="func"></param>
@@ -125,7 +127,7 @@ public class EventCenter: BaseManager<EventCenter>
     }
 
     /// <summary>
-    /// Çå¿ÕËùÓĞÊÂ¼şµÄ¼àÌı
+    /// æ¸…ç©ºæ‰€æœ‰äº‹ä»¶çš„ç›‘å¬
     /// </summary>
     public void ClearAll()
     {
@@ -133,7 +135,7 @@ public class EventCenter: BaseManager<EventCenter>
     }
 
     /// <summary>
-    /// Çå³ıÖ¸¶¨Ä³Ò»¸öÊÂ¼şµÄËùÓĞ¼àÌı
+    /// æ¸…é™¤æŒ‡å®šæŸä¸€ä¸ªäº‹ä»¶çš„æ‰€æœ‰ç›‘å¬
     /// </summary>
     /// <param name="eventName"></param>
     public void Clear(E_EventType eventName)

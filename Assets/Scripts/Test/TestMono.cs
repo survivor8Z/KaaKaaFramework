@@ -1,63 +1,71 @@
-using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class TestMono : MonoBehaviour
 {
-    [SerializeField] private InputActionAsset inputActionAsset; // 使用与 InputMgr 相同的 asset
-    
-    private InputActionMap playerMap;
-    private InputAction moveAction;
-    private InputAction fireAction;
-    private InputAction lookAction;
-    
+    private void Awake()
+    {
+        
+    }
     private void Start()
     {
-        // 优先使用序列化的 asset，如果没指定则从 InputMgr 获取
-        // 这样就能确保使用与 InputMgr 相同的实例，改键会立即生效
-        if (inputActionAsset == null)
+        // 注册接口映射
+        DIContainer.Instance.Register<ISaveLoad, SaveService>();
+        DIContainer.Instance.Register<IAttack, Enemy>();
+        
+        IAttack enemy = DIContainer.Instance.Resolve(typeof(IAttack)) as IAttack;
+        enemy.Attack();
+
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyUp(KeyCode.J))
         {
-            inputActionAsset = InputBindingMgr.Instance.GetInputActionAsset();
-            if (inputActionAsset == null)
-            {
-                Debug.LogError("TestMono: 无法获取 InputActionAsset！请确保 InputMgr 已初始化");
-                return;
-            }
+            IAttack enemy = DIContainer.Instance.Resolve(typeof(IAttack)) as IAttack;
+            enemy.Attack();
         }
         
-        // 直接从 asset 获取 ActionMap 和 Actions
-        playerMap = inputActionAsset.FindActionMap("Player");
-        if (playerMap != null)
-        {
-            playerMap.Enable();
-            
-            moveAction = playerMap.FindAction("Move");
-            fireAction = playerMap.FindAction("Fire");
-            lookAction = playerMap.FindAction("Look");
-            
-            
-            if (moveAction != null)
-            {
-                moveAction.performed += (context) => { print("Move"+context.ReadValue<Vector2>()); };
-            }
-            
-            if (fireAction != null)
-            {
-                fireAction.performed += (context) => { print("Fire"); };
-            }
-        }
-        else
-        {
-            Debug.LogError("TestMono: 找不到 Player ActionMap");
-        }
     }
-    
-    private void OnDisable()
+}
+
+public interface IAttack
+{
+    void Attack();
+}
+
+public interface ISaveLoad
+{
+    void Save();
+    void Load();
+}
+
+public class SaveService:ISaveLoad
+{
+    public void Save()
     {
-        // 禁用 ActionMap（禁用后事件不会再触发）
-        if (playerMap != null)
-        {
-            playerMap.Disable();
-        }
-    }    
+        Debug.Log("Save");
+    }
+
+    public void Load()
+    {
+        Debug.Log("Load");
+    }
+} 
+
+public class Enemy : IAttack
+{
+    private ISaveLoad _saveLoad;
+    private int AttackCount = 0;
+    public Enemy(ISaveLoad saveLoad)
+    {
+        _saveLoad = saveLoad;
+    }
+    public void Attack()
+    {
+        _saveLoad.Load();
+        Debug.Log("Attack"+AttackCount++);
+        _saveLoad.Save();
+    }
 }
