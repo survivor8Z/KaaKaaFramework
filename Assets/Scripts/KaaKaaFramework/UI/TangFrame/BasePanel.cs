@@ -8,12 +8,12 @@ using UnityEngine.UI;
 public abstract class BasePanel : MonoBehaviour
 {
     /// <summary>
-    /// ÓÃÓÚ´æ´¢ËùÓĞÒªÓÃµ½µÄUI¿Ø¼ş£¬ÓÃÀúÊ·Ìæ»»Ô­Ôò ¸¸Àà×°×ÓÀà
+    /// ç”¨äºå­˜å‚¨æ‰€æœ‰è¦ç”¨åˆ°çš„UIæ§ä»¶ï¼Œç”¨å†å²æ›¿æ¢åŸåˆ™ çˆ¶ç±»è£…å­ç±»
     /// </summary>
     protected Dictionary<string, UIBehaviour> controlDic = new Dictionary<string, UIBehaviour>();
 
     /// <summary>
-    /// ¿Ø¼şÄ¬ÈÏÃû×Ö Èç¹ûµÃµ½µÄ¿Ø¼şÃû×Ö´æÔÚÓÚÕâ¸öÈİÆ÷ ÒâÎ¶×ÅÎÒÃÇ²»»áÍ¨¹ı´úÂëÈ¥Ê¹ÓÃËü ËüÖ»»áÊÇÆğµ½ÏÔÊ¾×÷ÓÃµÄ¿Ø¼ş
+    /// æ§ä»¶é»˜è®¤åå­— å¦‚æœå¾—åˆ°çš„æ§ä»¶åå­—å­˜åœ¨äºè¿™ä¸ªå®¹å™¨ æ„å‘³ç€æˆ‘ä»¬ä¸ä¼šé€šè¿‡ä»£ç å»ä½¿ç”¨å®ƒ å®ƒåªä¼šæ˜¯èµ·åˆ°æ˜¾ç¤ºä½œç”¨çš„æ§ä»¶
     /// </summary>
     private static List<string> defaultNameList = new List<string>() { "Image",
                                                                    "Text (TMP)",
@@ -33,36 +33,36 @@ public abstract class BasePanel : MonoBehaviour
 
     protected virtual void Awake()
     {
-        //ÎªÁË±ÜÃâ Ä³Ò»¸ö¶ÔÏóÉÏ´æÔÚÁ½ÖÖ¿Ø¼şµÄÇé¿ö
-        //ÎÒÃÇÓ¦¸ÃÓÅÏÈ²éÕÒÖØÒªµÄ×é¼ş
+        //ä¸ºäº†é¿å… æŸä¸€ä¸ªå¯¹è±¡ä¸Šå­˜åœ¨ä¸¤ç§æ§ä»¶çš„æƒ…å†µ
+        //æˆ‘ä»¬åº”è¯¥ä¼˜å…ˆæŸ¥æ‰¾é‡è¦çš„ç»„ä»¶
         FindChildrenControl<Button>();
         FindChildrenControl<Toggle>();
         FindChildrenControl<Slider>();
         FindChildrenControl<InputField>();
         FindChildrenControl<ScrollRect>();
         FindChildrenControl<Dropdown>();
-        //¼´Ê¹¶ÔÏóÉÏ¹ÒÔÚÁË¶à¸ö×é¼ş Ö»ÒªÓÅÏÈÕÒµ½ÁËÖØÒª×é¼ş
-        //Ö®ºóÒ²¿ÉÒÔÍ¨¹ıÖØÒª×é¼şµÃµ½ÉíÉÏÆäËû¹ÒÔØµÄÄÚÈİ
+        //å³ä½¿å¯¹è±¡ä¸ŠæŒ‚åœ¨äº†å¤šä¸ªç»„ä»¶ åªè¦ä¼˜å…ˆæ‰¾åˆ°äº†é‡è¦ç»„ä»¶
+        //ä¹‹åä¹Ÿå¯ä»¥é€šè¿‡é‡è¦ç»„ä»¶å¾—åˆ°èº«ä¸Šå…¶ä»–æŒ‚è½½çš„å†…å®¹
         FindChildrenControl<Text>();
         FindChildrenControl<TextMeshProUGUI>();
         FindChildrenControl<Image>();
     }
 
     /// <summary>
-    /// Ãæ°åÏÔÊ¾Ê±»áµ÷ÓÃµÄÂß¼­
+    /// é¢æ¿æ˜¾ç¤ºæ—¶ä¼šè°ƒç”¨çš„é€»è¾‘
     /// </summary>
     public abstract void ShowMe();
 
     /// <summary>
-    /// Ãæ°åÒş²ØÊ±»áµ÷ÓÃµÄÂß¼­
+    /// é¢æ¿éšè—æ—¶ä¼šè°ƒç”¨çš„é€»è¾‘
     /// </summary>
     public abstract void HideMe();
 
     /// <summary>
-    /// »ñÈ¡Ö¸¶¨Ãû×ÖÒÔ¼°Ö¸¶¨ÀàĞÍµÄ×é¼ş
+    /// è·å–æŒ‡å®šåå­—ä»¥åŠæŒ‡å®šç±»å‹çš„ç»„ä»¶
     /// </summary>
-    /// <typeparam name="T">×é¼şÀàĞÍ</typeparam>
-    /// <param name="name">×é¼şÃû×Ö</param>
+    /// <typeparam name="T">ç»„ä»¶ç±»å‹</typeparam>
+    /// <param name="name">ç»„ä»¶åå­—</param>
     /// <returns></returns>
     public T GetControl<T>(string name) where T:UIBehaviour
     {
@@ -70,12 +70,12 @@ public abstract class BasePanel : MonoBehaviour
         {
             T control = controlDic[name] as T;
             if (control == null)
-                Debug.LogError($"²»´æÔÚ¶ÔÓ¦Ãû×Ö{name}ÀàĞÍÎª{typeof(T)}µÄ×é¼ş");
+                Debug.LogError($"ä¸å­˜åœ¨å¯¹åº”åå­—{name}ç±»å‹ä¸º{typeof(T)}çš„ç»„ä»¶");
             return control;
         }
         else
         {
-            Debug.LogError($"²»´æÔÚ¶ÔÓ¦Ãû×Ö{name}µÄ×é¼ş");
+            Debug.LogError($"ä¸å­˜åœ¨å¯¹åº”åå­—{name}çš„ç»„ä»¶");
             return null;
         }
     }
@@ -100,15 +100,15 @@ public abstract class BasePanel : MonoBehaviour
         T[] controls = this.GetComponentsInChildren<T>(true);
         for (int i = 0; i < controls.Length; i++)
         {
-            //»ñÈ¡µ±Ç°¿Ø¼şµÄÃû×Ö
+            //è·å–å½“å‰æ§ä»¶çš„åå­—
             string controlName = controls[i].gameObject.name;
-            //Í¨¹ıÕâÖÖ·½Ê½ ½«¶ÔÓ¦×é¼ş¼ÇÂ¼µ½×ÖµäÖĞ
+            //é€šè¿‡è¿™ç§æ–¹å¼ å°†å¯¹åº”ç»„ä»¶è®°å½•åˆ°å­—å…¸ä¸­
             if (!controlDic.ContainsKey(controlName))
             {
                 if(!defaultNameList.Contains(controlName))
                 {
                     controlDic.Add(controlName, controls[i]);
-                    //ÅĞ¶Ï¿Ø¼şµÄÀàĞÍ ¾ö¶¨ÊÇ·ñ¼ÓÊÂ¼ş¼àÌı
+                    //åˆ¤æ–­æ§ä»¶çš„ç±»å‹ å†³å®šæ˜¯å¦åŠ äº‹ä»¶ç›‘å¬
                     if(controls[i] is Button)
                     {
                         (controls[i] as Button).onClick.AddListener(() =>

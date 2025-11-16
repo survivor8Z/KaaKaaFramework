@@ -6,33 +6,18 @@ public class MyCanvasBaseBase : MonoBehaviour
 {
     //自动生成的控件声明
     public Button testBtn;
-    public TextMeshProUGUI text_TMP;
     public Button testBtn1;
-    public TextMeshProUGUI text_TMP1;
     public Button testBtn2;
-    public TextMeshProUGUI text_TMP2;
     public Button testBtn3;
-    public TextMeshProUGUI text_TMP3;
     public Button testBtn4;
-    public TextMeshProUGUI text_TMP4;
     public Button testBtn4_1;
-    public TextMeshProUGUI text_TMP5;
     public Button testBtn4_2;
-    public TextMeshProUGUI text_TMP6;
     public Button testBtn4_3;
-    public TextMeshProUGUI text_TMP7;
     public ScrollRect scroll_View;
-    public Image viewport;
     public Button testSSS;
-    public TextMeshProUGUI text_TMP8;
-    public Image scrollbar_Horizontal;
-    public Image handle;
-    public Image scrollbar_Vertical;
-    public Image handle1;
     public Button asdf;
     public TextMeshProUGUI qqqq;
     public Button button;
-    public TextMeshProUGUI text_TMP9;
 
 
     protected virtual void Start()
@@ -55,17 +40,15 @@ public class MyCanvasBaseBase : MonoBehaviour
     }
 
     //自动生成的对应进行监听事件的响应函数
-    protected virtual void OntestBtnClick(){}
-    protected virtual void OntestBtn1Click(){}
-    protected virtual void OntestBtn2Click(){}
-    protected virtual void OntestBtn3Click(){}
-    protected virtual void OntestBtn4Click(){}
-    protected virtual void OntestBtn4_1Click(){}
-    protected virtual void OntestBtn4_2Click(){}
-    protected virtual void OntestBtn4_3Click(){}
-    protected virtual void OntestSSSClick(){}
-    protected virtual void OnasdfClick(){}
-    protected virtual void OnbuttonClick(){}
-
-
+    protected virtual void OntestBtnClick() { }
+    protected virtual void OntestBtn1Click() { }
+    protected virtual void OntestBtn2Click() { }
+    protected virtual void OntestBtn3Click() { }
+    protected virtual void OntestBtn4Click() { }
+    protected virtual void OntestBtn4_1Click() { }
+    protected virtual void OntestBtn4_2Click() { }
+    protected virtual void OntestBtn4_3Click() { }
+    protected virtual void OntestSSSClick() { }
+    protected virtual void OnasdfClick() { }
+    protected virtual void OnbuttonClick() { }
 }

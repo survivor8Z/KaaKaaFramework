@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using UnityEditor.Compilation;
@@ -45,7 +46,7 @@ public class UIPanelTool : EditorWindow
     // UI相关
     private Vector2 scrollPosition;                         // 滚动位置
     private string searchFilter = "";                       // 搜索过滤
-    private int selectedIndex = -1;                        // 选中的索引
+    private string typeFilter = "全部";                    // 类型过滤（"全部"表示不过滤）
     private Dictionary<int, string> editingFieldNames;     // 正在编辑的字段名
     private GameObject lastSelectedObject;                  // 上次选择的对象，用于检测变化
     
@@ -519,6 +520,16 @@ public class UIPanelTool : EditorWindow
             displayMode = displayMode == DisplayMode.Tree ? DisplayMode.Linear : DisplayMode.Tree;
         }
         EditorGUILayout.EndHorizontal();
+        
+        // 类型过滤
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("类型:", GUILayout.Width(50));
+        string[] typeOptions = new string[] { "全部", "Button", "Toggle", "Slider", "InputField", "ScrollRect", "Dropdown", "Text", "TextMeshProUGUI", "Image", "非UI控件" };
+        int currentTypeIndex = Array.IndexOf(typeOptions, typeFilter);
+        if (currentTypeIndex < 0) currentTypeIndex = 0;
+        int newTypeIndex = EditorGUILayout.Popup(currentTypeIndex, typeOptions, GUILayout.Width(150));
+        typeFilter = typeOptions[newTypeIndex];
+        EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.Space(5);
 
@@ -603,14 +614,34 @@ public class UIPanelTool : EditorWindow
             return;
         }
 
-        // 应用搜索过滤
-        if (!string.IsNullOrEmpty(searchFilter))
+        // 应用搜索过滤和类型过滤
+        selectedUIControls = selectedUIControls.Where(item =>
         {
-            selectedUIControls = selectedUIControls.Where(item =>
-                item.controlName.ToLower().Contains(searchFilter.ToLower()) ||
-                item.fieldName.ToLower().Contains(searchFilter.ToLower())
-            ).ToList();
-        }
+            // 文本搜索过滤
+            bool textMatch = true;
+            if (!string.IsNullOrEmpty(searchFilter))
+            {
+                textMatch = item.controlName.ToLower().Contains(searchFilter.ToLower()) ||
+                           item.fieldName.ToLower().Contains(searchFilter.ToLower());
+            }
+            
+            // 类型过滤
+            bool typeMatch = true;
+            if (typeFilter != "全部")
+            {
+                if (typeFilter == "非UI控件")
+                {
+                    typeMatch = !item.isUIControl;
+                }
+                else
+                {
+                    typeMatch = item.isUIControl && item.controlType != null && 
+                               item.controlType.Name == typeFilter;
+                }
+            }
+            
+            return textMatch && typeMatch;
+        }).ToList();
 
         // 绘制每个选中的UI控件
         foreach (var item in selectedUIControls)
@@ -736,15 +767,38 @@ public class UIPanelTool : EditorWindow
     {
         if (item == null) return;
 
-        // 应用搜索过滤
+        // 应用搜索过滤和类型过滤
+        bool shouldShow = true;
+        
+        // 文本搜索过滤
+        bool textMatch = true;
         if (!string.IsNullOrEmpty(searchFilter))
         {
-            bool matches = item.controlName.ToLower().Contains(searchFilter.ToLower()) ||
-                          (item.isUIControl && item.fieldName.ToLower().Contains(searchFilter.ToLower()));
-            if (!matches && !HasMatchingChild(item))
+            textMatch = item.controlName.ToLower().Contains(searchFilter.ToLower()) ||
+                       (item.isUIControl && item.fieldName.ToLower().Contains(searchFilter.ToLower()));
+        }
+        
+        // 类型过滤
+        bool typeMatch = true;
+        if (typeFilter != "全部")
+        {
+            if (typeFilter == "非UI控件")
             {
-                return;
+                typeMatch = !item.isUIControl;
             }
+            else
+            {
+                typeMatch = item.isUIControl && item.controlType != null && 
+                           item.controlType.Name == typeFilter;
+            }
+        }
+        
+        shouldShow = textMatch && typeMatch;
+        
+        // 如果当前项不匹配，检查是否有子项匹配
+        if (!shouldShow && !HasMatchingChild(item))
+        {
+            return;
         }
 
         // 获取行矩形，使用紧凑布局
@@ -909,8 +963,30 @@ public class UIPanelTool : EditorWindow
         
         foreach (var child in item.children)
         {
-            bool matches = child.controlName.ToLower().Contains(searchFilter.ToLower()) ||
-                          (child.isUIControl && child.fieldName.ToLower().Contains(searchFilter.ToLower()));
+            // 文本搜索匹配
+            bool textMatch = true;
+            if (!string.IsNullOrEmpty(searchFilter))
+            {
+                textMatch = child.controlName.ToLower().Contains(searchFilter.ToLower()) ||
+                           (child.isUIControl && child.fieldName.ToLower().Contains(searchFilter.ToLower()));
+            }
+            
+            // 类型匹配
+            bool typeMatch = true;
+            if (typeFilter != "全部")
+            {
+                if (typeFilter == "非UI控件")
+                {
+                    typeMatch = !child.isUIControl;
+                }
+                else
+                {
+                    typeMatch = child.isUIControl && child.controlType != null && 
+                               child.controlType.Name == typeFilter;
+                }
+            }
+            
+            bool matches = textMatch && typeMatch;
             if (matches || HasMatchingChild(child))
             {
                 return true;
@@ -1413,7 +1489,7 @@ public class UIPanelTool : EditorWindow
     {
         if (current == null) return;
 
-        // 排除默认名称的对象（如果它们没有UI组件）
+        // 检查对象名是否在默认排除列表中
         bool isExcludedName = defaultExcludeNames.Contains(current.name);
 
         // 获取UI组件
@@ -1421,6 +1497,7 @@ public class UIPanelTool : EditorWindow
         bool hasUIControl = uiComponent != null;
 
         // 如果是有UI组件的对象，或者不是排除名称的对象，都添加到列表
+        // 注意：即使名字在排除列表中，如果有UI组件也会添加到列表（用于显示），但默认不选择
         if (hasUIControl || !isExcludedName)
         {
             string path = GetControlPath(current, root);
@@ -1447,10 +1524,12 @@ public class UIPanelTool : EditorWindow
             mapping.fieldName = fieldName;
             mapping.isUIControl = hasUIControl;
             
-            // 设置默认选择状态：如果是排除名称的对象，即使有UI组件也不选择；否则有UI组件默认选中
+            // 设置默认选择状态：
+            // - 如果名字在defaultExcludeNames列表中，即使有UI组件也默认不选择（isSelected = false）
+            // - 否则，只有UI控件默认选中（isSelected = true），非UI控件不选中（isSelected = false）
             if (isExcludedName)
             {
-                mapping.isSelected = false; // 排除名称的对象默认不选择
+                mapping.isSelected = false; // 默认名称的控件默认不选择
             }
             else
             {
@@ -1464,37 +1543,6 @@ public class UIPanelTool : EditorWindow
         foreach (Transform child in current.transform)
         {
             ScanGameObjectRecursive(child.gameObject, root);
-        }
-    }
-
-    /// <summary>
-    /// 扫描指定类型的控件
-    /// </summary>
-    private void ScanControls<T>(GameObject root) where T : UIBehaviour
-    {
-        T[] controls = root.GetComponentsInChildren<T>(true);
-        Type type = typeof(T);
-
-        foreach (T control in controls)
-        {
-            string controlName = control.gameObject.name;
-
-            // 排除默认名称
-            if (defaultExcludeNames.Contains(controlName))
-            {
-                continue;
-            }
-
-            // 计算路径
-            string path = GetControlPath(control.gameObject, root);
-
-            // 自动转换变量名为camelCase并清理特殊字符
-            string fieldName = ToCamelCase(controlName);
-
-            // 创建映射项
-            var mapping = new ControlMappingItem(controlName, type, path, control.gameObject, control);
-            mapping.fieldName = fieldName; // 使用转换后的字段名
-            controlMappings.Add(mapping);
         }
     }
 
@@ -1513,26 +1561,6 @@ public class UIPanelTool : EditorWindow
         }
 
         return string.Join("/", pathParts);
-    }
-
-    /// <summary>
-    /// 移除重复控件（同一GameObject上的多个组件只保留一个）
-    /// </summary>
-    private void RemoveDuplicateControls()
-    {
-        var uniqueMappings = new List<ControlMappingItem>();
-        var seenGameObjects = new HashSet<GameObject>();
-
-        foreach (var mapping in controlMappings)
-        {
-            if (!seenGameObjects.Contains(mapping.gameObject))
-            {
-                uniqueMappings.Add(mapping);
-                seenGameObjects.Add(mapping.gameObject);
-            }
-        }
-
-        controlMappings = uniqueMappings;
     }
 
     /// <summary>
@@ -1666,6 +1694,34 @@ public class UIPanelTool : EditorWindow
             return;
         }
 
+        // 规范化路径（提前定义，供后续使用）
+        string normalizedPath = savePath.Replace('\\', '/').TrimEnd('/');
+        if (!normalizedPath.StartsWith("Assets/"))
+        {
+            normalizedPath = "Assets/" + normalizedPath.TrimStart('/');
+        }
+        string systemPath = normalizedPath.Replace("Assets/", Application.dataPath + "/");
+        
+        // 编译前检查：检查子类是否有编译错误
+        string childFilePath = System.IO.Path.Combine(systemPath, $"{panelName}.cs");
+        if (System.IO.File.Exists(childFilePath))
+        {
+            if (!CheckCompileErrors(childFilePath))
+            {
+                // 有编译错误，询问是否继续
+                bool forceGenerate = EditorUtility.DisplayDialog("编译错误警告", 
+                    "检测到子类中存在编译错误，这可能导致代码生成后无法自动挂载脚本。\n\n" +
+                    "建议先修复编译错误后再生成代码。\n\n" +
+                    "是否强制生成？", "强制生成", "取消");
+                
+                if (!forceGenerate)
+                {
+                    Debug.Log("[UIPanelTool] 用户取消了代码生成（存在编译错误）");
+                    return;
+                }
+            }
+        }
+
         // 加载模板
         string baseTemplatePath = "Assets/Editor/UIPanelTool/UIConfigBase.txt";
         string childTemplatePath = "Assets/Editor/UIPanelTool/UIConfig.txt";
@@ -1698,23 +1754,14 @@ public class UIPanelTool : EditorWindow
         // 生成子类代码
         string childCode = string.Format(childTemplate.text, panelName, panelName + "Base");
 
-        // 保存文件
-        // 规范化路径
-        string normalizedPath = savePath.Replace('\\', '/').TrimEnd('/');
-        if (!normalizedPath.StartsWith("Assets/"))
-        {
-            normalizedPath = "Assets/" + normalizedPath.TrimStart('/');
-        }
-        
-        // 转换为系统绝对路径用于文件操作
-        string systemPath = normalizedPath.Replace("Assets/", Application.dataPath + "/");
+        // 保存文件（路径已在前面定义）
         if (!System.IO.Directory.Exists(systemPath))
         {
             System.IO.Directory.CreateDirectory(systemPath);
         }
         
         string baseFilePath = System.IO.Path.Combine(systemPath, $"{panelName}Base.cs");
-        string childFilePath = System.IO.Path.Combine(systemPath, $"{panelName}.cs");
+        childFilePath = System.IO.Path.Combine(systemPath, $"{panelName}.cs");
 
         // 安全检查：检查文件是否已存在
         bool baseFileExists = System.IO.File.Exists(baseFilePath);
@@ -1723,43 +1770,60 @@ public class UIPanelTool : EditorWindow
         bool shouldWriteBase = true;
         bool shouldWriteChild = true;
 
+        // 合并模式：0=完全覆盖, 1=智能合并, 2=取消
+        int mergeMode = 0;
+        
         if (baseFileExists || childFileExists)
         {
             string message = "检测到以下文件已存在：\n";
             if (baseFileExists) message += $"• {panelName}Base.cs\n";
             if (childFileExists) message += $"• {panelName}.cs\n";
-            message += "\n覆盖文件将丢失已有代码！";
+            message += "\n请选择处理方式：";
 
-            // 如果两个文件都存在，提供更细粒度的选择
+            // 如果Base类存在，提供智能合并选项
             if (baseFileExists && childFileExists)
             {
                 int choice = EditorUtility.DisplayDialogComplex("警告", message, 
-                    "覆盖全部", "只覆盖Base类", "取消");
+                    "智能合并（推荐）", "取消", "完全覆盖");
                 
-                if (choice == 0) // 覆盖全部
+                if (choice == 0) // 智能合并
                 {
+                    mergeMode = 1;
                     shouldWriteBase = true;
-                    shouldWriteChild = true;
+                    shouldWriteChild = false; // 子类不覆盖
                 }
-                else if (choice == 1) // 只覆盖Base类
-                {
-                    shouldWriteBase = true;
-                    shouldWriteChild = false;
-                }
-                else // 取消
+                else if (choice == 1) // 取消
                 {
                     Debug.Log("[UIPanelTool] 用户取消了代码生成");
                     return;
+                }
+                else // 完全覆盖
+                {
+                    mergeMode = 0;
+                    shouldWriteBase = true;
+                    shouldWriteChild = true;
                 }
             }
             else if (baseFileExists)
             {
-                bool overwrite = EditorUtility.DisplayDialog("警告", message + 
-                    $"\n\n是否覆盖 {panelName}Base.cs？", "覆盖", "取消");
-                if (!overwrite)
+                int choice = EditorUtility.DisplayDialogComplex("警告", message + 
+                    $"\n\nBase类 {panelName}Base.cs 已存在", 
+                    "智能合并（推荐）", "取消", "完全覆盖");
+                
+                if (choice == 0) // 智能合并
+                {
+                    mergeMode = 1;
+                    shouldWriteBase = true;
+                }
+                else if (choice == 1) // 取消
                 {
                     Debug.Log("[UIPanelTool] 用户取消了代码生成");
                     return;
+                }
+                else // 完全覆盖
+                {
+                    mergeMode = 0;
+                    shouldWriteBase = true;
                 }
             }
             else if (childFileExists)
@@ -1777,7 +1841,25 @@ public class UIPanelTool : EditorWindow
         // 根据用户选择写入文件
         if (shouldWriteBase)
         {
-        System.IO.File.WriteAllText(baseFilePath, baseCode, Encoding.UTF8);
+            string finalBaseCode = baseCode;
+            
+            // 如果是智能合并模式，合并现有代码
+            if (mergeMode == 1 && baseFileExists)
+            {
+                try
+                {
+                    string existingBaseCode = System.IO.File.ReadAllText(baseFilePath, Encoding.UTF8);
+                    finalBaseCode = MergeBaseClass(existingBaseCode, baseCode, selectedMappings, childFilePath);
+                    Debug.Log($"[UIPanelTool] 已智能合并 Base 类: {panelName}Base.cs");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[UIPanelTool] 智能合并失败，使用完全覆盖: {ex.Message}");
+                    finalBaseCode = baseCode; // 回退到完全覆盖
+                }
+            }
+            
+            System.IO.File.WriteAllText(baseFilePath, finalBaseCode, Encoding.UTF8);
             Debug.Log($"[UIPanelTool] 已生成/覆盖 Base 类: {panelName}Base.cs");
         }
         else
@@ -1905,6 +1987,462 @@ public class UIPanelTool : EditorWindow
         }
         
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// 智能合并Base类：保留已有的事件函数实现，只更新字段声明和事件监听
+    /// </summary>
+    private string MergeBaseClass(string existingCode, string newCode, List<ControlMappingItem> newMappings, string childFilePath = null)
+    {
+        // 解析现有代码，提取事件函数实现
+        Dictionary<string, string> existingFunctions = ExtractEventFunctions(existingCode);
+        
+        // 提取子类中的override方法（如果子类文件存在）
+        Dictionary<string, string> childOverrideMethods = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(childFilePath) && System.IO.File.Exists(childFilePath))
+        {
+            try
+            {
+                string childCode = System.IO.File.ReadAllText(childFilePath, Encoding.UTF8);
+                childOverrideMethods = ExtractChildOverrideMethods(childCode);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[UIPanelTool] 读取子类文件失败: {ex.Message}");
+            }
+        }
+        
+        // 使用新代码作为基础，但替换事件函数部分
+        string[] newCodeLines = newCode.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        StringBuilder mergedCode = new StringBuilder();
+        
+        bool inFunctionsSection = false;
+        bool functionsReplaced = false;
+        
+        // 遍历新代码，替换事件函数部分
+        for (int i = 0; i < newCodeLines.Length; i++)
+        {
+            string line = newCodeLines[i];
+            string trimmedLine = line.Trim();
+            
+            // 检测事件函数区域开始
+            if (trimmedLine.Contains("//自动生成的对应进行监听事件的响应函数"))
+            {
+                inFunctionsSection = true;
+                mergedCode.AppendLine(line);
+                
+                // 添加合并后的事件函数
+                foreach (var mapping in newMappings)
+                {
+                    string fieldName = mapping.fieldName;
+                    Type type = mapping.controlType;
+                    string functionName = "";
+                    string functionSignature = "";
+                    
+                    if (type == typeof(Button))
+                    {
+                        functionName = $"On{fieldName}Click";
+                        functionSignature = $"    protected virtual void On{fieldName}Click()";
+                    }
+                    else if (type == typeof(Slider))
+                    {
+                        functionName = $"On{fieldName}ValueChanged";
+                        functionSignature = $"    protected virtual void On{fieldName}ValueChanged(float value)";
+                    }
+                    else if (type == typeof(Toggle))
+                    {
+                        functionName = $"On{fieldName}ValueChanged";
+                        functionSignature = $"    protected virtual void On{fieldName}ValueChanged(bool value)";
+                    }
+                    
+                    if (!string.IsNullOrEmpty(functionName))
+                    {
+                        // 如果已有实现，使用已有的；否则使用新的空实现
+                        if (existingFunctions.ContainsKey(functionName))
+                        {
+                            string normalizedFunction = NormalizeFunctionIndentation(existingFunctions[functionName]);
+                            mergedCode.AppendLine(normalizedFunction);
+                        }
+                        else
+                        {
+                            mergedCode.AppendLine(functionSignature + " { }");
+                        }
+                    }
+                }
+                
+                // 检查子类中的override方法，如果Base类中没有对应的virtual方法，则添加它们
+                HashSet<string> addedFunctionNames = new HashSet<string>();
+                foreach (var mapping in newMappings)
+                {
+                    string fieldName = mapping.fieldName;
+                    Type type = mapping.controlType;
+                    string functionName = "";
+                    
+                    if (type == typeof(Button))
+                    {
+                        functionName = $"On{fieldName}Click";
+                    }
+                    else if (type == typeof(Slider) || type == typeof(Toggle))
+                    {
+                        functionName = $"On{fieldName}ValueChanged";
+                    }
+                    
+                    if (!string.IsNullOrEmpty(functionName))
+                    {
+                        addedFunctionNames.Add(functionName);
+                    }
+                }
+                
+                // 添加子类中需要但Base类中缺失的virtual方法
+                // 或者保留Base类中已有但新字段列表中没有的方法（如果子类中有override）
+                foreach (var kvp in childOverrideMethods)
+                {
+                    string functionName = kvp.Key;
+                    string functionSignature = kvp.Value;
+                    
+                    // 如果这个函数不在新字段列表中
+                    if (!addedFunctionNames.Contains(functionName))
+                    {
+                        // 如果Base类中原本有这个方法，保留它
+                        if (existingFunctions.ContainsKey(functionName))
+                        {
+                            mergedCode.AppendLine();
+                            mergedCode.AppendLine($"    // TODO: 字段已删除，但子类中仍有override实现，请手动清理");
+                            string normalizedFunction = NormalizeFunctionIndentation(existingFunctions[functionName]);
+                            mergedCode.AppendLine(normalizedFunction);
+                        }
+                        // 如果Base类中也没有，添加新的空方法
+                        else
+                        {
+                            mergedCode.AppendLine();
+                            mergedCode.AppendLine($"    // TODO: 字段已删除，但子类中仍有override实现，请手动清理");
+                            mergedCode.AppendLine($"    {functionSignature} {{ }}");
+                        }
+                    }
+                }
+                
+                functionsReplaced = true;
+                // 跳过新代码中的事件函数部分
+                i++;
+                while (i < newCodeLines.Length)
+                {
+                    string nextLine = newCodeLines[i];
+                    string nextTrimmed = nextLine.Trim();
+                    
+                    // 如果遇到类结束的大括号，保留它
+                    if (nextTrimmed == "}")
+                    {
+                        mergedCode.AppendLine(nextLine);
+                        break;
+                    }
+                    
+                    // 跳过空的事件函数定义
+                    if (nextTrimmed.StartsWith("protected virtual void On") && 
+                        (nextTrimmed.Contains("Click()") || nextTrimmed.Contains("ValueChanged")))
+                    {
+                        // 跳过整个函数定义（包括大括号）
+                        int braceCount = 0;
+                        bool inFunction = false;
+                        while (i < newCodeLines.Length)
+                        {
+                            string funcLine = newCodeLines[i];
+                            foreach (char c in funcLine)
+                            {
+                                if (c == '{')
+                                {
+                                    braceCount++;
+                                    inFunction = true;
+                                }
+                                else if (c == '}')
+                                {
+                                    braceCount--;
+                                    if (braceCount == 0 && inFunction)
+                                    {
+                                        i++;
+                                        goto NextFunction;
+                                    }
+                                }
+                            }
+                            i++;
+                        }
+                        NextFunction:
+                        continue;
+                    }
+                    
+                    i++;
+                }
+                break;
+            }
+            else
+            {
+                mergedCode.AppendLine(line);
+            }
+        }
+        
+        // 如果事件函数部分没有被替换，在末尾添加
+        if (!functionsReplaced)
+        {
+            mergedCode.AppendLine();
+            mergedCode.AppendLine("    //自动生成的对应进行监听事件的响应函数");
+            
+            foreach (var mapping in newMappings)
+            {
+                string fieldName = mapping.fieldName;
+                Type type = mapping.controlType;
+                string functionName = "";
+                string functionSignature = "";
+                
+                if (type == typeof(Button))
+                {
+                    functionName = $"On{fieldName}Click";
+                    functionSignature = $"    protected virtual void On{fieldName}Click()";
+                }
+                else if (type == typeof(Slider))
+                {
+                    functionName = $"On{fieldName}ValueChanged";
+                    functionSignature = $"    protected virtual void On{fieldName}ValueChanged(float value)";
+                }
+                else if (type == typeof(Toggle))
+                {
+                    functionName = $"On{fieldName}ValueChanged";
+                    functionSignature = $"    protected virtual void On{fieldName}ValueChanged(bool value)";
+                }
+                
+                if (!string.IsNullOrEmpty(functionName))
+                {
+                    if (existingFunctions.ContainsKey(functionName))
+                    {
+                        string normalizedFunction = NormalizeFunctionIndentation(existingFunctions[functionName]);
+                        mergedCode.AppendLine(normalizedFunction);
+                    }
+                    else
+                    {
+                        mergedCode.AppendLine(functionSignature + " { }");
+                    }
+                }
+            }
+            
+            // 检查子类中的override方法，如果Base类中没有对应的virtual方法，则添加它们
+            HashSet<string> addedFunctionNames = new HashSet<string>();
+            foreach (var mapping in newMappings)
+            {
+                string fieldName = mapping.fieldName;
+                Type type = mapping.controlType;
+                string functionName = "";
+                
+                if (type == typeof(Button))
+                {
+                    functionName = $"On{fieldName}Click";
+                }
+                else if (type == typeof(Slider) || type == typeof(Toggle))
+                {
+                    functionName = $"On{fieldName}ValueChanged";
+                }
+                
+                if (!string.IsNullOrEmpty(functionName))
+                {
+                    addedFunctionNames.Add(functionName);
+                }
+            }
+            
+            // 添加子类中需要但Base类中缺失的virtual方法
+            // 或者保留Base类中已有但新字段列表中没有的方法（如果子类中有override）
+            foreach (var kvp in childOverrideMethods)
+            {
+                string functionName = kvp.Key;
+                string functionSignature = kvp.Value;
+                
+                // 如果这个函数不在新字段列表中
+                if (!addedFunctionNames.Contains(functionName))
+                {
+                    // 如果Base类中原本有这个方法，保留它
+                    if (existingFunctions.ContainsKey(functionName))
+                    {
+                        mergedCode.AppendLine();
+                        mergedCode.AppendLine($"    // TODO: 字段已删除，但子类中仍有override实现，请手动清理");
+                        string normalizedFunction = NormalizeFunctionIndentation(existingFunctions[functionName]);
+                        mergedCode.AppendLine(normalizedFunction);
+                    }
+                    // 如果Base类中也没有，添加新的空方法
+                    else
+                    {
+                        mergedCode.AppendLine();
+                        mergedCode.AppendLine($"    // TODO: 字段已删除，但子类中仍有override实现，请手动清理");
+                        mergedCode.AppendLine($"    {functionSignature} {{ }}");
+                    }
+                }
+            }
+            
+            mergedCode.AppendLine("}");
+        }
+        
+        return mergedCode.ToString();
+    }
+
+    /// <summary>
+    /// 从现有Base类代码中提取事件函数实现
+    /// </summary>
+    private Dictionary<string, string> ExtractEventFunctions(string code)
+    {
+        Dictionary<string, string> functions = new Dictionary<string, string>();
+        
+        // 匹配事件函数：protected virtual void OnXXXClick() 或 OnXXXValueChanged(float/bool value)
+        Regex functionRegex = new Regex(@"protected\s+virtual\s+void\s+(On\w+(?:Click|ValueChanged))\s*\([^)]*\)\s*\{", RegexOptions.Multiline);
+        MatchCollection matches = functionRegex.Matches(code);
+        
+        foreach (Match match in matches)
+        {
+            string functionName = match.Groups[1].Value;
+            int startPos = match.Index;
+            int braceDepth = 0;
+            int pos = startPos;
+            bool inFunction = false;
+            
+            // 找到函数体的开始
+            while (pos < code.Length)
+            {
+                if (code[pos] == '{')
+                {
+                    braceDepth++;
+                    inFunction = true;
+                }
+                else if (code[pos] == '}')
+                {
+                    braceDepth--;
+                    if (braceDepth == 0 && inFunction)
+                    {
+                        // 函数结束
+                        string functionCode = code.Substring(startPos, pos - startPos + 1);
+                        functions[functionName] = functionCode;
+                        break;
+                    }
+                }
+                pos++;
+            }
+        }
+        
+        return functions;
+    }
+
+    /// <summary>
+    /// 从子类代码中提取override的事件函数签名
+    /// 返回字典：方法名 -> 完整方法签名（包括参数）
+    /// </summary>
+    private Dictionary<string, string> ExtractChildOverrideMethods(string childCode)
+    {
+        Dictionary<string, string> overrideMethods = new Dictionary<string, string>();
+        
+        // 匹配override事件函数：protected override void OnXXXClick() 或 OnXXXValueChanged(float/bool value)
+        // 捕获完整的方法签名（包括参数类型）
+        Regex overrideRegex = new Regex(@"protected\s+override\s+void\s+(On\w+(?:Click|ValueChanged))\s*\(([^)]*)\)", RegexOptions.Multiline);
+        MatchCollection matches = overrideRegex.Matches(childCode);
+        
+        foreach (Match match in matches)
+        {
+            string functionName = match.Groups[1].Value;
+            string parameters = match.Groups[2].Value.Trim();
+            
+            // 构建完整的方法签名
+            string fullSignature = $"protected virtual void {functionName}({parameters})";
+            overrideMethods[functionName] = fullSignature;
+        }
+        
+        return overrideMethods;
+    }
+
+    /// <summary>
+    /// 规范化方法代码的缩进，确保函数签名有4个空格的缩进
+    /// </summary>
+    private string NormalizeFunctionIndentation(string functionCode)
+    {
+        if (string.IsNullOrEmpty(functionCode))
+            return functionCode;
+
+        string[] lines = functionCode.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        StringBuilder normalized = new StringBuilder();
+        
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            string trimmed = line.TrimStart();
+            
+            // 跳过空行
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                normalized.AppendLine();
+                continue;
+            }
+            
+            // 第一行（函数签名）必须有4个空格缩进
+            if (i == 0)
+            {
+                normalized.AppendLine($"    {trimmed}");
+            }
+            // 其他行保持相对缩进（相对于第一行）
+            else
+            {
+                // 计算原行的缩进（相对于第一行）
+                int originalIndent = line.Length - line.TrimStart().Length;
+                int firstLineIndent = lines[0].Length - lines[0].TrimStart().Length;
+                
+                // 计算相对缩进
+                int relativeIndent = originalIndent - firstLineIndent;
+                
+                // 如果第一行没有缩进，其他行保持原缩进
+                if (firstLineIndent == 0)
+                {
+                    normalized.AppendLine(line);
+                }
+                // 否则，第一行4个空格，其他行保持相对缩进
+                else
+                {
+                    int newIndent = 4 + Math.Max(0, relativeIndent);
+                    normalized.AppendLine(new string(' ', newIndent) + trimmed);
+                }
+            }
+        }
+        
+        return normalized.ToString().TrimEnd('\r', '\n');
+    }
+
+    /// <summary>
+    /// 检查子类文件是否有编译错误
+    /// </summary>
+    private bool CheckCompileErrors(string filePath)
+    {
+        try
+        {
+            // 读取文件内容
+            string fileContent = System.IO.File.ReadAllText(filePath, Encoding.UTF8);
+            
+            // 基本语法检查：检查大括号和括号是否匹配
+            int openBraces = 0;
+            int closeBraces = 0;
+            int openParens = 0;
+            int closeParens = 0;
+            
+            foreach (char c in fileContent)
+            {
+                if (c == '{') openBraces++;
+                else if (c == '}') closeBraces++;
+                else if (c == '(') openParens++;
+                else if (c == ')') closeParens++;
+            }
+            
+            // 基本语法检查
+            if (openBraces != closeBraces || openParens != closeParens)
+            {
+                Debug.LogWarning($"[UIPanelTool] 检测到语法错误：大括号或括号不匹配");
+                return false;
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[UIPanelTool] 检查编译错误时发生异常: {ex.Message}");
+            return true; // 如果检查失败，假设没有错误，允许继续
+        }
     }
 
     /// <summary>
@@ -2480,7 +3018,7 @@ public class UIPanelTool : EditorWindow
         selectedItems?.Clear();
         lastSelectedItem = null;
         searchFilter = "";
-        selectedIndex = -1;
+        typeFilter = "全部";
         currentState = UIToolState.Empty;
     }
 }

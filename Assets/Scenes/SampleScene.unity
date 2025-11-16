@@ -1102,33 +1102,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   testBtn: {fileID: 995483492}
-  text_TMP: {fileID: 1140442202}
   testBtn1: {fileID: 229818383}
-  text_TMP1: {fileID: 424037434}
   testBtn2: {fileID: 1537356745}
-  text_TMP2: {fileID: 857411559}
   testBtn3: {fileID: 1260126068}
-  text_TMP3: {fileID: 1651776091}
   testBtn4: {fileID: 218938284}
-  text_TMP4: {fileID: 1094138343}
   testBtn4_1: {fileID: 402611296}
-  text_TMP5: {fileID: 150268885}
   testBtn4_2: {fileID: 458551024}
-  text_TMP6: {fileID: 97770660}
   testBtn4_3: {fileID: 1502181114}
-  text_TMP7: {fileID: 1318728148}
   scroll_View: {fileID: 619904483}
-  viewport: {fileID: 65843161}
   testSSS: {fileID: 581285131}
-  text_TMP8: {fileID: 1449740112}
-  scrollbar_Horizontal: {fileID: 2143120783}
-  handle: {fileID: 387575326}
-  scrollbar_Vertical: {fileID: 1269693732}
-  handle1: {fileID: 1570513693}
   asdf: {fileID: 88234198}
   qqqq: {fileID: 368652843}
   button: {fileID: 1672922548}
-  text_TMP9: {fileID: 1343864865}
 --- !u!1 &285462121
 GameObject:
   m_ObjectHideFlags: 0
@@ -3562,7 +3547,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1570513693}
   m_HandleRect: {fileID: 1570513692}
   m_Direction: 2
-  m_Value: 0
+  m_Value: -0.000003651676
   m_Size: 0.61
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -4162,7 +4147,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.0000052452087, y: 117.000015}
+  m_AnchoredPosition: {x: -0.0000052452087, y: 117.00046}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1537356743
@@ -4613,7 +4598,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0.7, y: 166.4}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1815943267
